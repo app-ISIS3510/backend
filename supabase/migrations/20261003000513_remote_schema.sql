@@ -37,19 +37,6 @@ CREATE TABLE "public"."app_admins" (
 ALTER TABLE "public"."app_admins"
   ENABLE ROW LEVEL SECURITY;
 
-CREATE TABLE "public"."vehicles" (
-  "id"           uuid                     NOT NULL DEFAULT gen_random_uuid(),
-  "user_id"      uuid                     NOT NULL,
-  "vehicle_type" text                     NOT NULL,
-  "plate"        text                     NOT NULL,
-  "is_selected"  boolean                  NOT NULL DEFAULT false,
-  "created_at"   timestamp with time zone NOT NULL DEFAULT now(),
-  CONSTRAINT "vehicles_check"
-    CHECK ((((vehicle_type = 'car'::text) AND (plate ~ '^[A-Z]{3}[0-9]{3}$'::text)) OR ((vehicle_type = 'motorcycle'::text) AND (plate ~ '^[A-Z]{3}[0-9]{2}[A-Z]$'::text)))),
-  CONSTRAINT "vehicles_pkey" PRIMARY KEY (id),
-  CONSTRAINT "vehicles_user_id_plate_key" UNIQUE (user_id, plate),
-  CONSTRAINT "vehicles_vehicle_type_check" CHECK ((vehicle_type = ANY (ARRAY['car'::text, 'motorcycle'::text])))
-);
 
 ALTER TABLE "public"."vehicles"
   ENABLE ROW LEVEL SECURITY;
@@ -391,26 +378,8 @@ CREATE POLICY "Update parking sessions during development" ON "public"."parking_
   USING ((user_id = ( SELECT auth.uid() AS uid)))
   WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
 
-CREATE POLICY "Delete own vehicles" ON "public"."vehicles"
-  FOR DELETE
-  TO "authenticated"
-  USING ((user_id = ( SELECT auth.uid() AS uid)));
 
-CREATE POLICY "Insert own vehicles" ON "public"."vehicles"
-  FOR INSERT
-  TO "authenticated"
-  WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
 
-CREATE POLICY "Read own vehicles" ON "public"."vehicles"
-  FOR SELECT
-  TO "authenticated"
-  USING ((user_id = ( SELECT auth.uid() AS uid)));
-
-CREATE POLICY "Update own vehicles" ON "public"."vehicles"
-  FOR UPDATE
-  TO "authenticated"
-  USING ((user_id = ( SELECT auth.uid() AS uid)))
-  WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
 
 GRANT EXECUTE ON FUNCTION "public"."add_my_vehicle"(text, text) TO "authenticated";
 
