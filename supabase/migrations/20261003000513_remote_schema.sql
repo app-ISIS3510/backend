@@ -1,3 +1,11 @@
+-- Este archivo se genero con db pull contra una base donde
+-- 20260930060000_profile_vehicles.sql ya estaba aplicada, asi que volvia a declarar
+-- cuatro objetos que esa migracion crea: las columnas vehicle_id y vehicle_plate de
+-- parking_sessions, el indice one_selected_vehicle_per_user y el trigger
+-- guard_vehicle_delete. Al reproducir la historia desde cero fallaban con 42701.
+-- Se quitaron de aqui. La version de septiembre es la que vale: ademas declara la
+-- llave foranea de vehicle_id, que la generada habia perdido.
+
 SET local check_function_bodies = off;
 
 SELECT cron.unschedule('reset-parking-availability-daily');
@@ -40,12 +48,6 @@ ALTER TABLE "public"."app_admins"
 
 ALTER TABLE "public"."vehicles"
   ENABLE ROW LEVEL SECURITY;
-
-ALTER TABLE "public"."parking_sessions"
-  ADD COLUMN "vehicle_id" uuid;
-
-ALTER TABLE "public"."parking_sessions"
-  ADD COLUMN "vehicle_plate" text;
 
 CREATE OR REPLACE FUNCTION public.add_my_vehicle (
   p_vehicle_type text,
@@ -323,14 +325,6 @@ CREATE VIEW "public"."parking_lots_with_availability" AS  WITH context AS (
         END AS available_motorcycle_spaces
    FROM (current_availability c
      LEFT JOIN prediction pr ON ((pr.parking_id = c.id)));
-
-CREATE UNIQUE INDEX one_selected_vehicle_per_user ON public.vehicles USING btree (user_id)
-  WHERE is_selected;
-
-CREATE TRIGGER guard_vehicle_delete
-  BEFORE DELETE ON public.vehicles
-  FOR EACH ROW
-  EXECUTE FUNCTION public.guard_vehicle_delete();
 
 CREATE POLICY "Authenticated users can read analytics" ON "public"."analytics_events"
   FOR SELECT
