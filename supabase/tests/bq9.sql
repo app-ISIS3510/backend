@@ -56,10 +56,31 @@ values ('00000000-0000-4000-a000-000000009004',
 on conflict (id) do nothing;
 do $$
 begin
+  assert (select count(*) from public.bq9_pickup_time_choice_last_7_days) = 3,
+    'A regular account can read all three summary categories';
+  assert (select array_agg(column_name::text order by ordinal_position)
+    from information_schema.columns
+    where table_schema = 'public' and table_name = 'bq9_pickup_time_choice_last_7_days') =
+    array['pickup_choice', 'successful_starts', 'percentage', 'total_successful_starts'],
+    'The summary only returns categories, counts and percentages';
+  assert not has_table_privilege(current_user, 'public.bq9_pickup_time_choice_last_7_days', 'UPDATE'),
+    'Summary access is read-only';
   begin
     insert into public.analytics_events(user_id, event_type)
     values ('00000000-0000-4000-a000-000000009002', 'parking_pickup_choice');
     raise exception 'The app must not insert events for another user';
+  exception when insufficient_privilege then
+    null;
+  end;
+end $$;
+reset role;
+
+set local role anon;
+do $$
+begin
+  begin
+    perform * from public.bq9_pickup_time_choice_last_7_days;
+    raise exception 'Anonymous requests must not read the summary';
   exception when insufficient_privilege then
     null;
   end;
@@ -83,8 +104,8 @@ begin
     where id = '00000000-0000-4000-a000-000000009004') = 1, 'Retry keeps the same event ID';
   assert not has_table_privilege('anon', 'public.bq9_pickup_time_choice_last_7_days', 'SELECT'),
     'No anonymous access';
-  assert not has_table_privilege('authenticated', 'public.bq9_pickup_time_choice_last_7_days', 'SELECT'),
-    'App users do not receive access to shared dashboard data';
+  assert has_table_privilege('authenticated', 'public.bq9_pickup_time_choice_last_7_days', 'SELECT'),
+    'Signed-in users can read the pickup choice summary';
   if exists (select 1 from pg_roles where rolname = 'parku_bi_reader') then
     assert has_table_privilege('parku_bi_reader', 'public.bq9_pickup_time_choice_last_7_days', 'SELECT'),
       'The existing dashboard reader can read the aggregate';
