@@ -1,4 +1,3 @@
--- Flow 3: los vehículos pertenecen a la cuenta de Supabase Auth.
 begin;
 
 create table public.vehicles (
@@ -57,7 +56,7 @@ begin
 end;
 $$;
 
--- También protege el borrado por REST, no solo el botón de la aplicación.
+-- Also blocks deletion through the API.
 create function public.guard_vehicle_delete()
 returns trigger language plpgsql security invoker set search_path = '' as $$
 begin
@@ -102,7 +101,6 @@ begin
   if exists(select 1 from public.parking_sessions where user_id = v_user and status = 'active') then
     raise exception 'ACTIVE_SESSION_EXISTS';
   end if;
-  -- Reutiliza el control de capacidad existente del equipo.
   select * into v_session from public.start_parking_session(p_parking_id, p_pickup_time, v_vehicle.vehicle_type);
   update public.parking_sessions set vehicle_id = v_vehicle.id, vehicle_plate = v_vehicle.plate
     where id = v_session.id returning * into v_session;
