@@ -1,4 +1,4 @@
--- Ejecutar como postgres. Todo queda dentro de una transacción que se revierte.
+-- Run as postgres. All test changes are rolled back.
 begin;
 insert into auth.users(id) values
  ('00000000-0000-4000-a000-000000003001'),

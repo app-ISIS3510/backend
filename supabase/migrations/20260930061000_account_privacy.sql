@@ -1,4 +1,3 @@
--- Al iniciar sesión, favoritos y parqueos deben ser privados por cuenta.
 begin;
 alter policy "Read favorites during development" on public.favorites to authenticated
   using (user_id = (select auth.uid()));
@@ -13,8 +12,7 @@ alter policy "Create parking sessions during development" on public.parking_sess
 alter policy "Update parking sessions during development" on public.parking_sessions to authenticated
   using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
 
--- Esta función cuenta todos los cupos, incluso con RLS activado por usuario.
--- Su contrato anterior se conserva para los otros flujos del equipo.
+-- Count spaces for all users, even with RLS enabled.
 create or replace function public.start_parking_session(
   p_parking_id uuid, p_pickup_time timestamptz, p_vehicle_type text
 ) returns public.parking_sessions
